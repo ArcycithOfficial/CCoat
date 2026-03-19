@@ -47,13 +47,15 @@ get("/api/creators/:id") do
 end
 
 #PRODUCTS
-get("/api/products") do
+get("/api/creators/:creator_id/products") do
   db = db_connection
-  products = db.execute("SELECT * FROM products")
+  creator_id = params[:creator_id].to_i
+
+  products = db.execute("SELECT * FROM products WHERE creator_id = ?", creator_id)
   json products
 end
 
-get("/api/products/:id") do
+get("/api/creators/:creator_id/products/:id") do
   db = db_connection
   id = params[:id].to_i
   product = db.execute("SELECT * FROM products WHERE id = ?", id).first
@@ -63,7 +65,6 @@ get("/api/products/:id") do
   WHERE product_option_types.product_id = ?", id)
 
   json({product: product, options: options })
-
 end
 
 #ORDERS
@@ -76,14 +77,14 @@ end
 
 
 #REVIEWS
-get("/api/products/product:id/reviews") do
+get("/api/creators/:creator_id/products/:product_id/reviews") do
   db = db_connection
   product_id = params[:product_id].to_i
   reviews = db.execute("SELECT * FROM reviews WHERE product_id = ?", product_id)
   json reviews
 end
 
-post("/api/products/:product_id/reviews") do
+post("/api/creators/:creator_id/products/:product_id/reviews") do
   db = db_connection
   product_id = params[:product_id].to_i
 
@@ -100,18 +101,35 @@ post("/api/products/:product_id/reviews") do
   json new_review
 end
 
-get("/api/products/:product_id/reviews/:id/edit") do
+#edit
+get("/api/creators/:creator_id/products/:product_id/reviews/:id") do
   db = db_connection
-  product_id = params[:product_id].to_i
   id = params[:id].to_i
-  review = db.execute("SELECT * FROM reviews WHERE id = ?", id).first
+  review = db.execute("SELECT * FROM reviews WHERE id = ? AND product_id = ?", id).first
   json review
 end
 
-post("/api/products/:product_id/reviews/:id/delete") do
+#update
+put("/api/creators/:creator_id/products/:product_id/reviews/:id") do
+  db = db_connection
+  product_id = params[:product_id].to_i
+  review_id = params[:id].to_i
+
+  request_payload = JSON.parse(request.body.read)
+  rating = request_payload["rating"].to_i
+  comment = request_payload["comment"]
+
+  db.execute("UPDATE reviews SET rating = ?, comment = ? WHERE id = ? AND product_id = ?", rating, comment, review_id, product_id)
+  updated_review = db.execute("SELECT * FROM reviews WHERE id = ? AND product_id = ?", review_id).first
+
+  json updated_review
+end
+
+#delete
+delete("/api/creators/:creator_id/products/:product_id/reviews/:id") do
   db = db_connection
   review_id = params[:id].to_i
-  db.execute("DELETE FROM reviews WHERE id = ?", review_id)
+  db.execute("DELETE FROM reviews WHERE id = ? AND product_id = ?", review_id)
   json review_id
 end
 
@@ -124,6 +142,8 @@ get("/api/votes/:creator_id") do
   votes = db.execute("SELECT * FROM votes WHERE creator_id = ?", creator_id)
   json votes
 end
+
+
 
 #HOME
 get('/') do

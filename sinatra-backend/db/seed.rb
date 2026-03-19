@@ -38,21 +38,21 @@ def create_tables(db)
               username TEXT NOT NULL, 
               email TEXT NOT NULL,
               pwd_digest TEXT NOT NULL,
-              created_at TEXT,
-              profile_picture
+              created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+              profile_picture TEXT
               )')
   #creators
   db.execute('CREATE TABLE creators (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               name TEXT NOT NULL, 
-              username TEXT NOT NULL,
+              username TEXT NOT NULL UNIQUE,
               real_name TEXT, 
               nationality TEXT, 
               age integer,
               about_me TEXT,
               profile_image TEXT,
               banner_image TEXT,
-              created_at TEXT,
+              created_at TEXT DEFAULT CURRENT_TIMESTAMP,
               theme_color TEXT
               )')    
   #categories
@@ -60,15 +60,17 @@ def create_tables(db)
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               name TEXT NOT NULL
               )') 
+
   #Social_medias
   db.execute('CREATE TABLE social_medias (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               creator_id INTEGER,
-              platform TEXT,
-              username TEXT,
+              platform TEXT NOT NULL,
+              username TEXT NOT NULL,
               followers INTEGER,
               views INTEGER
-              )')               
+              )')     
+
   #Creator_Categories (many to many)
   db.execute('CREATE TABLE creator_categories(
               creator_id INTEGER,
@@ -79,17 +81,17 @@ def create_tables(db)
   #products
   db.execute('CREATE TABLE products (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
-              creator_id INTEGER,
-              name TEXT,
-              description TEXT,
-              base_price INT,
+              creator_id INTEGER NOT NULL,
+              name TEXT NOT NULL,
+              description TEXT NOT NULL,
+              base_price INTTEGER NOT NULL,
               image TEXT,
-              created_at TEXT
+              created_at TEXT DEFAULT CURRENT_TIMESTAMP
               )')  
   #product_options (Size, Color, Addon)
   db.execute('CREATE TABLE option_types (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
-              name TEXT
+              name TEXT NOT NULL
               )') 
   #product_options_values (S, M, L, or Black, Red or Custom Text)
   db.execute('CREATE TABLE option_values (
@@ -110,6 +112,7 @@ def create_tables(db)
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               user_id INTEGER,
               total_price INTEGER,
+              status TEXT DEFAULT 'pending'
               created_at TEXT
             )')
 
@@ -129,7 +132,8 @@ def create_tables(db)
               product_id INTEGER,
               rating INTEGER,
               comment TEXT,
-              created_at TEXT
+              created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+              updated_at TEXT
             )')
 
   db.execute('CREATE TABLE reviews_likes (
@@ -137,6 +141,7 @@ def create_tables(db)
               review_id INTEGER,
               user_id INTEGER,
               liked BOOLEAN DEFAULT 1
+              UNIQUE (review_id, user_id)
             )')            
 
             
@@ -147,8 +152,8 @@ def create_tables(db)
               user_id INTEGER,
               creator_id INTEGER,
               created_at TEXT
+              UNIQUE (user_id, creator_id)
             )')
-
 end
 
 

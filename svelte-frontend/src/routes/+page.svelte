@@ -1,30 +1,48 @@
-<h1>Welcome to SvelteKit</h1>
-<p>Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation</p>
-
 <script>
-  import { onMount } from "svelte";
-
+  import CreatorHeader from '$lib/components/Header.svelte';
+  import { onMount } from 'svelte';
   let creators = [];
 
   onMount(async () => {
-    const res = await fetch("http://localhost:4567/api/creators"); // your Sinatra API
+    const res = await fetch('http://localhost:4567/api/creators');
     creators = await res.json();
   });
 </script>
+<CreatorHeader />
 
-<h1>Creators</h1>
 
-<ul>
+<div class="creator-grid">
   {#each creators as creator}
-    <li>
-      <strong>{creator.name}</strong> — {creator.about_me}
-    </li>
+    <div class="creator-card">
+      <img src="{creator.profile_image}" alt="{creator.name}" />
+      <h2>{creator.name}</h2>
+      <p>{creator.about_me}</p>
+      <a href="/creators/{creator.id}">View Products</a>
+    </div>
   {/each}
-</ul>
+</div>
+
+<h1>Featured Creators</h1>
 
 
-<h1>Backend test</h1>
 
-{#if data}
-  <pre>{JSON.stringify(data, null, 2)}</pre>
-{/if}
+<style>
+  .creator-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+
+  .creator-card {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    text-align: center;
+    background: white;
+  }
+
+  .creator-card img {
+    width: 100%;
+    border-radius: 0.5rem;
+  }
+</style>
