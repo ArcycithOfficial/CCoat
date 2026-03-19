@@ -20,6 +20,15 @@ def drop_tables(db)
   db.execute('DROP TABLE IF EXISTS social_medias')
   db.execute('DROP TABLE IF EXISTS users')
   db.execute('DROP TABLE IF EXISTS categories')
+  db.execute('DROP TABLE IF EXISTS products')
+  db.execute('DROP TABLE IF EXISTS option_types')
+  db.execute('DROP TABLE IF EXISTS option_values')
+  db.execute('DROP TABLE IF EXISTS product_option_types')
+  db.execute('DROP TABLE IF EXISTS orders')
+  db.execute('DROP TABLE IF EXISTS order_items')
+  db.execute('DROP TABLE IF EXISTS reviews')
+  db.execute('DROP TABLE IF EXISTS reviews_likes')
+  db.execute('DROP TABLE IF EXISTS votes')
 end
 
 def create_tables(db)
@@ -58,7 +67,7 @@ def create_tables(db)
               platform TEXT,
               username TEXT,
               followers INTEGER,
-              views INTEGER,
+              views INTEGER
               )')               
   #Creator_Categories (many to many)
   db.execute('CREATE TABLE creator_categories(
@@ -75,17 +84,17 @@ def create_tables(db)
               description TEXT,
               base_price INT,
               image TEXT,
-              created_at
+              created_at TEXT
               )')  
   #product_options (Size, Color, Addon)
-  db.execute('CREATE TABLE options_types (
+  db.execute('CREATE TABLE option_types (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               name TEXT
               )') 
   #product_options_values (S, M, L, or Black, Red or Custom Text)
   db.execute('CREATE TABLE option_values (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
-              product_option_type_id INTEGER,
+              option_type_id INTEGER,
               value TEXT,
               price_modifier INTEGER
               )') 
@@ -123,6 +132,15 @@ def create_tables(db)
               created_at TEXT
             )')
 
+  db.execute('CREATE TABLE reviews_likes (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              review_id INTEGER,
+              user_id INTEGER,
+              liked BOOLEAN DEFAULT 1
+            )')            
+
+            
+
   #VOTES
   db.execute('CREATE TABLE votes (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -139,6 +157,7 @@ end
 def populate_tables(db)
   #USERS
   db.execute('INSERT INTO users (username, email, pwd_digest) VALUES ("example_name", "example@gmail", "example_password")')
+  db.execute('INSERT INTO users (username, email, pwd_digest) VALUES ("example_name2", "example2@gmail", "example2_password")')
 
   #CATEGORIES
   db.execute('INSERT INTO categories (name) VALUES ("Gaming")')
@@ -146,8 +165,8 @@ def populate_tables(db)
   db.execute('INSERT INTO categories (name) VALUES ("Minecraft")')
 
   #CREATORS
-  db.execute("INSERT INTO creators (name, username, about_me, theme_color) VALUES (Dream,'dream','Minecraft Creator', 'light_green')")
-  db.execute("INSERT INTO creators (creator_id, platform, username, followers) VALUES (PewDiePie,'pewdiepie','OG Youtube Legend', 'red')")
+  db.execute("INSERT INTO creators (name, username, about_me, theme_color) VALUES ('Dream','dream','Minecraft Creator', 'light_green')")
+  db.execute("INSERT INTO creators (name, username, about_me, theme_color) VALUES ('PewDiePie','pewdiepie','OG Youtube Legend', 'red')")
 
   #SOCIAL_MEDIA
   db.execute("INSERT INTO social_medias (creator_id, platform, username, followers) VALUES (1,'YouTube','dream',31000000)")
@@ -161,7 +180,7 @@ def populate_tables(db)
 
   #PRODUCTS
   db.execute('INSERT INTO products (creator_id, name, description, base_price) VALUES (1, "Dream Hoodie", "Cool Minecraft Hoodie for Dream fans", 50)')
-  db.execute('INSERT INTO products (creator_id, name, description, base_price) VALUES (1, "PewDiePie T-Shirt", "Cool Minecraft Hoodie for Dream fans", 50)')
+  db.execute('INSERT INTO products (creator_id, name, description, base_price) VALUES (2, "PewDiePie T-Shirt", "Cool Minecraft Hoodie for Dream fans", 50)')
 
   #OPTIONS_TYPES
   db.execute('INSERT INTO option_types (name) VALUES ("Size")')
@@ -170,16 +189,37 @@ def populate_tables(db)
   db.execute('INSERT INTO option_types (name) VALUES ("Quote")')
 
   #OPTION_VALUES
+  db.execute('INSERT INTO option_values (option_type_id, value,price_modifier) VALUES (1,"S",0)')
+  db.execute('INSERT INTO option_values (option_type_id, value,price_modifier) VALUES (1,"M",0)')
+  db.execute('INSERT INTO option_values (option_type_id, value,price_modifier) VALUES (1,"L",5)')
+  db.execute('INSERT INTO option_values (option_type_id, value,price_modifier) VALUES (2,"Black",0)')
+  db.execute('INSERT INTO option_values (option_type_id, value,price_modifier) VALUES (2,"Red",0)')
+  db.execute('INSERT INTO option_values (option_type_id, value,price_modifier) VALUES (3,"Custom Text",10)')
+
 
   #PRODUCT_OPTION_TYPES
+  db.execute('INSERT INTO product_option_types (product_id, option_type_id) VALUES (1,1)')
+  db.execute('INSERT INTO product_option_types (product_id, option_type_id) VALUES (1,2)')
+  db.execute('INSERT INTO product_option_types (product_id, option_type_id) VALUES (1,3)')
+  db.execute('INSERT INTO product_option_types (product_id, option_type_id) VALUES (2,2)')
 
   #ORDERS
+  db.execute('INSERT INTO orders (user_id,total_price) VALUES (1,70)')
+  db.execute('INSERT INTO orders (user_id,total_price) VALUES (2,20)')
 
   #ORDER_ITEMS
+  db.execute('INSERT INTO order_items (order_id,product_id,quantity,price_at_purchase) VALUES (1,1,1,50)')
+  db.execute('INSERT INTO order_items (order_id,product_id,quantity,price_at_purchase) VALUES (1,1,1,20)')
+  db.execute('INSERT INTO order_items (order_id,product_id,quantity,price_at_purchase) VALUES (2,2,1,20)')
+
 
   #REVIEWS
+  db.execute('INSERT INTO reviews (user_id,product_id,rating,comment) VALUES (1,1,5,"Amazing hoodie!")')
+  db.execute('INSERT INTO reviews (user_id,product_id,rating,comment) VALUES (2,2,4,"Nice mug!")')
 
   #VOTES
+  db.execute('INSERT INTO votes (user_id,creator_id) VALUES (1,1)')
+  db.execute('INSERT INTO votes (user_id,creator_id) VALUES (2,2)')
 end
 
 

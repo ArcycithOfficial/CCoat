@@ -1,8 +1,10 @@
 source "https://rubygems.org"
 
-gem "sinatra", "~> 4.2.1"
-gem "sinatra-contrib", "~> 4.2.1" # cross_origin
-gem "sqlite3", "~> 1.5"            # utveckling
-gem "pg", "~> 1.5"                 # produktion om PostgreSQL
-gem "bcrypt", "~> 3.1"             # lösenord
-gem "stripe", "~> 5.0"             # betalningar
+gem "sinatra", "~> 4.2"
+gem "sinatra-contrib", "~> 4.2"    # For reloader and json
+gem "sinatra-cross_origin", "~> 0.4.0" # Required for sinatra/cross_origin
+gem "slim"
+gem "sqlite3", "~> 2.9"            # Latest version for 2026
+gem "bcrypt", "~> 3.1"
+gem "puma"
+gem "rackup"
