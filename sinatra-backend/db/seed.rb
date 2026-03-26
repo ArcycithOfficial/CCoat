@@ -84,7 +84,7 @@ def create_tables(db)
               creator_id INTEGER NOT NULL,
               name TEXT NOT NULL,
               description TEXT NOT NULL,
-              base_price INTTEGER NOT NULL,
+              base_price INTEGER NOT NULL,
               image TEXT,
               created_at TEXT DEFAULT CURRENT_TIMESTAMP
               )')  
@@ -108,13 +108,13 @@ def create_tables(db)
               )') 
 
   #ORDERS
-  db.execute('CREATE TABLE orders (
+  db.execute("CREATE TABLE orders (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               user_id INTEGER,
               total_price INTEGER,
-              status TEXT DEFAULT 'pending'
-              created_at TEXT
-            )')
+              status TEXT DEFAULT 'pending',
+              created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )")
 
   #Order_items
   db.execute('CREATE TABLE order_items (
@@ -140,7 +140,7 @@ def create_tables(db)
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               review_id INTEGER,
               user_id INTEGER,
-              liked BOOLEAN DEFAULT 1
+              liked BOOLEAN DEFAULT 1,
               UNIQUE (review_id, user_id)
             )')            
 
@@ -151,7 +151,7 @@ def create_tables(db)
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               user_id INTEGER,
               creator_id INTEGER,
-              created_at TEXT
+              created_at TEXT,
               UNIQUE (user_id, creator_id)
             )')
 end
@@ -170,7 +170,7 @@ def populate_tables(db)
   db.execute('INSERT INTO categories (name) VALUES ("Minecraft")')
 
   #CREATORS
-  db.execute("INSERT INTO creators (name, username, about_me, theme_color) VALUES ('Dream','dream','Minecraft Creator', 'light_green')")
+  db.execute("INSERT INTO creators (name, username, about_me, theme_color, profile_image, banner_image) VALUES ('Dream','dream','Minecraft Creator', 'light_green', '/images/dream.jpg', '/images/dream-banner.png')")
   db.execute("INSERT INTO creators (name, username, about_me, theme_color) VALUES ('PewDiePie','pewdiepie','OG Youtube Legend', 'red')")
 
   #SOCIAL_MEDIA

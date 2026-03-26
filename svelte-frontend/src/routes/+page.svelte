@@ -1,5 +1,6 @@
 <script>
   import CreatorHeader from '$lib/components/Header.svelte';
+  import CreatorGrid from '$lib/components/CreatorGrid.svelte';
   import { onMount } from 'svelte';
   let creators = [];
 
@@ -10,17 +11,7 @@
 </script>
 <CreatorHeader />
 
-
-<div class="creator-grid">
-  {#each creators as creator}
-    <div class="creator-card">
-      <img src="{creator.profile_image}" alt="{creator.name}" />
-      <h2>{creator.name}</h2>
-      <p>{creator.about_me}</p>
-      <a href="/creators/{creator.id}">View Products</a>
-    </div>
-  {/each}
-</div>
+<CreatorGrid />
 
 <h1>Featured Creators</h1>
 
