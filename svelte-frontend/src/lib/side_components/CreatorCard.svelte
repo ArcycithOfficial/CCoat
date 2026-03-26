@@ -11,31 +11,15 @@ import { onMount } from 'svelte';
   {#each creators as creator}
      <a href="/creators/{creator.id}" class="creator-card">
         <div class="border rounded-md">
-        <img class="object-cover border h-20" src="{creator.profile_image}" alt="{creator.name}" />
-        <div class="border flex items-center gap-2">
-        <h2 class="flex-1">{creator.name}</h2>
-        <img class="h-4 w-4" src="/images/cart" alt="card-icon" />
-        <img class="h-4 w-4" src="/images/heart" alt="heart-icon" />
+        <img class="object-cover border w-full" src="{creator.profile_image}" alt="{creator.name}" />
+        <div class="border flex items-center gap-1">
+        <h1 class="flex-1 font-serif text-xs">@{creator.name}</h1>
+        <img class="h-10 w-10 center" src="/images/cart.png" alt="cart-icon" />
+        <img class="h-10 w-10 center" src="/images/heart.png" alt="heart-icon" />
         </div>
         </div>
      </a>
 
-    <a href="/creators/{creator.id}" class="creator-card">
-        <div class="border rounded-md">
-        <img class="object-cover border h-20" src="{creator.profile_image}" alt="{creator.name}" />
-        <div class="border">
-        <h2>{creator.name}</h2>
-        </div>
-        </div>
-     </a>
-
-          <a href="/creators/{creator.id}" class="creator-card">
-        <div class="border rounded-md">
-        <img class="object-cover border h-20" src="{creator.profile_image}" alt="{creator.name}" />
-        <div class="border">
-        <h2>{creator.name}</h2>
-        </div>
-        </div>
-     </a>
+   
 
   {/each}

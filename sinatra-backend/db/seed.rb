@@ -171,7 +171,7 @@ def populate_tables(db)
 
   #CREATORS
   db.execute("INSERT INTO creators (name, username, about_me, theme_color, profile_image, banner_image) VALUES ('Dream','dream','Minecraft Creator', 'light_green', '/images/dream.jpg', '/images/dream-banner.png')")
-  db.execute("INSERT INTO creators (name, username, about_me, theme_color) VALUES ('PewDiePie','pewdiepie','OG Youtube Legend', 'red')")
+  db.execute("INSERT INTO creators (name, username, about_me, theme_color, profile_image, banner_image) VALUES ('PewDiePie','pewdiepie','OG Youtube Legend', 'red','/images/pewdiepie.jpg', '/images/pewdiepie-banner.png')")
 
   #SOCIAL_MEDIA
   db.execute("INSERT INTO social_medias (creator_id, platform, username, followers) VALUES (1,'YouTube','dream',31000000)")
