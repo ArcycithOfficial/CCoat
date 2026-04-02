@@ -38,6 +38,7 @@ def create_tables(db)
               username TEXT NOT NULL, 
               email TEXT NOT NULL,
               pwd_digest TEXT NOT NULL,
+              role TEXT DEFAULT "user",
               created_at TEXT DEFAULT CURRENT_TIMESTAMP,
               profile_picture TEXT
               )')
@@ -161,8 +162,8 @@ end
 
 def populate_tables(db)
   #USERS
-  db.execute('INSERT INTO users (username, email, pwd_digest) VALUES ("example_name", "example@gmail", "example_password")')
-  db.execute('INSERT INTO users (username, email, pwd_digest) VALUES ("example_name2", "example2@gmail", "example2_password")')
+  db.execute('INSERT INTO users (username, email, pwd_digest, role) VALUES ("Arcycith", "arcycith@gmail.com", "secretpassword", "admin")')
+  db.execute('INSERT INTO users (username, email, pwd_digest, role) VALUES ("Victor", "victor@gmail.com", "nonsecretpassword", "user")')
 
   #CATEGORIES
   db.execute('INSERT INTO categories (name) VALUES ("Gaming")')

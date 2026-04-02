@@ -9,8 +9,23 @@ require 'sinatra/cross_origin'
 configure do
  enable :cross_origin
 end
+
+# Handle preflight OPTIONS requests automatically AI GENERERAT FÖR ATT HJÄLPA ATT SINATRA ALLTID TAR EMOT REQUESTS FRÅN SVELTE
+options "*" do
+  response.headers["Access-Control-Allow-Origin"] = "*"
+  response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+  response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+  200
+end
 before do
  response.headers['Access-Control-Allow-Origin'] = '*'
+end
+
+enable :sessions
+set :session_secret, "3UIUWFIWEIGGUIg#giug#uigIFGIWEFIUFUWEGFWJKNFJWJKEHKFUFHWHFKHEUIHSSFF"
+
+before '/admin/*' do
+  halt 403, "Access Denied" unless session[:role] == 'admin'
 end
 
 #Easier to connect databases
@@ -26,6 +41,24 @@ get("/api/data") do
 end
 
 #TESTING DATABASE
+#LOGIN
+post("/api/login") do
+  #JSON parse logik information från AI
+  db = db.connection
+  data = JSON.parse(request.body.read)
+  email = data["email"]
+  password = data["password"]
+  user = db.execute("SELECT * FROM users WHERE email=?", email).first
+
+  if user && BCrypt::Password.new('pwd_digest') == password
+    session[:user_id] = user['id']
+    session[:role] = user['role']
+    json({success: true, role: user['role']})
+  else
+    json({success: false, message: "Invalid Argument"})
+  end
+
+end
 
 #CREATORS
 get("/api/creators") do
