@@ -5,6 +5,7 @@ require 'sinatra/reloader'
 require 'bcrypt'
 require "sinatra/json"
 require 'sinatra/cross_origin'
+require 'json'
 
 configure do
  enable :cross_origin
@@ -12,13 +13,15 @@ end
 
 # Handle preflight OPTIONS requests automatically AI GENERERAT FÖR ATT HJÄLPA ATT SINATRA ALLTID TAR EMOT REQUESTS FRÅN SVELTE
 options "*" do
-  response.headers["Access-Control-Allow-Origin"] = "*"
+  response.headers['Access-Control-Allow-Origin'] = 'http://localhost:5173'
+  response.headers['Access-Control-Allow-Credentials'] = 'true'
   response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
   response.headers["Access-Control-Allow-Headers"] = "Content-Type"
   200
 end
 before do
- response.headers['Access-Control-Allow-Origin'] = '*'
+  response.headers['Access-Control-Allow-Origin'] = 'http://localhost:5173'
+  response.headers['Access-Control-Allow-Credentials'] = 'true'
 end
 
 enable :sessions
@@ -41,23 +44,35 @@ get("/api/data") do
 end
 
 #TESTING DATABASE
+#SIGN-IN
+post("/api/signup") do
+  db = db_connection
+  data = JSON.parse(request.body.read)
+  username = data["username"]
+  email = data["email"]
+  password = data["password"]
+
+  password = BCrypt::Password.create(password)
+
+  db.execute("INSERT INTO users(username, email, pwd_digest, role) VALUES (?, ?, ? ,?)", username, email, password, "user")
+end
+
 #LOGIN
 post("/api/login") do
   #JSON parse logik information från AI
-  db = db.connection
+  db = db_connection
   data = JSON.parse(request.body.read)
   email = data["email"]
   password = data["password"]
   user = db.execute("SELECT * FROM users WHERE email=?", email).first
 
-  if user && BCrypt::Password.new('pwd_digest') == password
+  if user && BCrypt::Password.new(user['pwd_digest']) == password
     session[:user_id] = user['id']
     session[:role] = user['role']
     json({success: true, role: user['role']})
   else
     json({success: false, message: "Invalid Argument"})
   end
-
 end
 
 #CREATORS
@@ -153,7 +168,7 @@ put("/api/creators/:creator_id/products/:product_id/reviews/:id") do
   comment = request_payload["comment"]
 
   db.execute("UPDATE reviews SET rating = ?, comment = ? WHERE id = ? AND product_id = ?", rating, comment, review_id, product_id)
-  updated_review = db.execute("SELECT * FROM reviews WHERE id = ? AND product_id = ?", review_id).first
+  updated_review = db.execute("SELECT * FROM reviews WHERE id = ? AND product_id = ?", review_id, product_id).first
 
   json updated_review
 end
