@@ -1,4 +1,8 @@
 require 'sqlite3'
+require 'bcrypt'
+
+admin_password = BCrypt::Password.create("secretpassword")
+user_password = BCrypt::Password.create("nonsecretpassword")
 
 db = SQLite3::Database.new("database.db")
 
@@ -162,8 +166,8 @@ end
 
 def populate_tables(db)
   #USERS
-  db.execute('INSERT INTO users (username, email, pwd_digest, role) VALUES ("Arcycith", "arcycith@gmail.com", BCrypt::Password.create(secretpassword), "admin")')
-  db.execute('INSERT INTO users (username, email, pwd_digest, role) VALUES ("Victor", "victor@gmail.com", BCrypt::Password.create(notsecretpassword), "user")')
+  db.execute('INSERT INTO users (username, email, pwd_digest, role) VALUES ("Arcycith", "arcycith@gmail.com", admin_password, "admin")')
+  db.execute('INSERT INTO users (username, email, pwd_digest, role) VALUES ("Victor", "victor@gmail.com", user_password, "user")')
 
   #CATEGORIES
   db.execute('INSERT INTO categories (name) VALUES ("Gaming")')
