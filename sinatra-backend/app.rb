@@ -11,6 +11,12 @@ configure do
  enable :cross_origin
 end
 
+set :sessions, #fixa att den sparar sessions så att den kan kommunicera med svelte och tillbaka
+  key: 'session',
+  httponly: true,
+  same_site: :none, #viktigt för kommunikationen
+  secure: false   #för lokalt
+
 # Handle preflight OPTIONS requests automatically AI GENERERAT FÖR ATT HJÄLPA ATT SINATRA ALLTID TAR EMOT REQUESTS FRÅN SVELTE
 options "*" do
   response.headers['Access-Control-Allow-Origin'] = 'http://localhost:5173'
@@ -22,13 +28,15 @@ end
 before do
   response.headers['Access-Control-Allow-Origin'] = 'http://localhost:5173'
   response.headers['Access-Control-Allow-Credentials'] = 'true'
+  response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
 end
 
-enable :sessions
+#ersätts av set :sessions enable :sessions
 set :session_secret, "3UIUWFIWEIGGUIg#giug#uigIFGIWEFIUFUWEGFWJKNFJWJKEHKFUFHWHFKHEUIHSSFF"
 
-before '/admin/*' do
-  halt 403, "Access Denied" unless session[:role] == 'admin'
+#rekommenderad för bättre security
+def require_admin!
+  halt 403, "ONLY TOP TIER ACCESS" unless session[:role] == 'admin'
 end
 
 #Easier to connect databases
@@ -43,7 +51,38 @@ get("/api/data") do
  json({message: "Hello from Sinatra", timestamp: Time.now})
 end
 
+#ADMIN
+get("/admin/users") do
+  require_admin!
+  db = db_connection
+  json db.execute("SELECT id, username, email, role FROM users")
+end
+#categories
+post("/admin/categories") do
+  require_admin!
+  db = db_connection
+  data = JSON
+
+  db.execute("INSERT INTO categories(name) VALUES (?), data["name"]")
+  json([success: true])
+end
+delete("/admin/categories/:id") do
+  db = db_connection
+  db.execute("DELETE FROM categories WHERE id = ?" params[:id].to_i)
+  json([success: true])
+end
+
 #TESTING DATABASE
+#USERS
+#checker om logged in och skickas som data till Svelte som läser av logged_in true or false
+get("/api/user") do
+  if session[:user_id]
+    json({ logged_in: true, user_id: session[:user_id], role: session[:role]})
+  else
+    json({logged_in: false})
+  end
+end
+
 #SIGN-IN
 post("/api/signup") do
   db = db_connection
@@ -69,10 +108,15 @@ post("/api/login") do
   if user && BCrypt::Password.new(user['pwd_digest']) == password
     session[:user_id] = user['id']
     session[:role] = user['role']
-    json({success: true, role: user['role']})
+    json({success: true, message: "Login successful", role: user['role']})
+
+
   else
-    json({success: false, message: "Invalid Argument"})
+
+    json({success: false, message: "Invalid email or password"})
   end
+
+
 end
 
 #CREATORS
