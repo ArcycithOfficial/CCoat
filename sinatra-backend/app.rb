@@ -14,7 +14,7 @@ end
 set :sessions, #fixa att den sparar sessions så att den kan kommunicera med svelte och tillbaka
   key: 'session',
   httponly: true,
-  same_site: :none, #viktigt för kommunikationen
+  same_site: :lax, #viktigt för kommunikationen
   secure: false   #för lokalt
 
 # Handle preflight OPTIONS requests automatically AI GENERERAT FÖR ATT HJÄLPA ATT SINATRA ALLTID TAR EMOT REQUESTS FRÅN SVELTE
@@ -61,14 +61,15 @@ end
 post("/admin/categories") do
   require_admin!
   db = db_connection
-  data = JSON
+  data = JSON.parse(request.body.read)
 
-  db.execute("INSERT INTO categories(name) VALUES (?), data["name"]")
+  db.execute("INSERT INTO categories(name) VALUES (?)", data["name"])
   json([success: true])
 end
+
 delete("/admin/categories/:id") do
   db = db_connection
-  db.execute("DELETE FROM categories WHERE id = ?" params[:id].to_i)
+  db.execute("DELETE FROM categories WHERE id = ?", params[:id].to_i)
   json([success: true])
 end
 
