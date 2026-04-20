@@ -12,14 +12,18 @@ configure do
  enable :cross_origin
 end
 
-def csrfToken
+#tar bort protection, behövs åtgärdas senare
+set :protection, except: :http_origin
+
+
+def csrf_token
   session[:csrf] ||= SecureRandom.hex(32)
 end
 
 
 #rekommenderad för bättre security
 def require_admin!
-  halt 403, { "Content-Type" => "application/json" }, { error: "ONLY TOP TIER ACCESS" }.to_json
+  halt 403, { error: "ONLY TOP TIER ACCESS" }.to_json unless session[:role] == 'admin'
 end
 
 #fixa att den sparar sessions så att den kan kommunicera med svelte och tillbaka
@@ -50,12 +54,10 @@ end
 before "/admin/*" do
   pass if request.request_method == "OPTIONS"
 
-
+  require_admin!
 
   token = request.env["HTTP_X_CSRF_TOKEN"]
-  halt 403, "CSRF token missing or invalid" unless token  && token == session[:csrf]
-
-    require_admin!
+  halt 403, { "Content-Type" => "application/json" }, { error: "CSRF token missing or invalid" }.to_json unless token  && token == session[:csrf]
 end
 
 
@@ -78,12 +80,9 @@ end
 
 #DEFINE CRSF
 get ("/api/csrf") do
-  json csrf: csrfToken
+  json csrf: csrf_token
 end
 
-get "/api/debug-session" do
-  json session
-end
 
 #ADMIN
 get("/admin/users") do
@@ -96,7 +95,21 @@ post("/admin/categories") do
   data = JSON.parse(request.body.read)
 
   db.execute("INSERT INTO categories(name) VALUES (?)", data["name"])
-  json([success: true])
+
+  id = db.execute("SELECT last_insert_rowid() AS id").first["id"]
+
+  json({ success: true, id: id, name: data["name"] })
+  puts session.inspect
+end
+
+put("/admin/categories/:id") do
+  db = db_connection
+  data = JSON.parse(request.body.read)
+  id = params[:id].to_i
+
+  db.execute("UPDATE categories SET name = ? WHERE id = ?", data["name"], id)
+
+  json({ success: true, id: id, name: data["name"] })
 end
 
 delete("/admin/categories/:id") do

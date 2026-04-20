@@ -1,49 +1,61 @@
 <script>
+    import { apiFetch } from '$lib/api';
     import { onMount } from 'svelte';
 
     let categories = [];
     let newCategory = '';
 
-    onMount(async () => {
-        const res = await fetch('http://localhost:4567/api/categories', {
-            method: 'POST',
-            headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': csrfToken
-        },
-            credentials: 'include',
-            body: JSON.stringify({ name: newCategory})
-        });
-
+    async function loadCategories() {
+        const res = await apiFetch('http://localhost:4567/api/categories');
         categories = await res.json();
-    });
+    }
+
+    onMount(loadCategories);
 
     async function addCategory() {
-        const res = await fetch('http://localhost:4567/admin/categories', {
+        const res = await apiFetch('http://localhost:4567/admin/categories', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
             body: JSON.stringify({ name: newCategory })
         });
 
         const data = await res.json();
 
         if (data.success) {
-            categories.push({ name: newCategory });
+            await loadCategories();
             newCategory = '';
         }
     }
 
-    async function deleteCategory(id) {
-        await fetch(`http://localhost:4567/admin/categories/${id}`, {
-            method: 'DELETE',
-            headers: {
-                'X-CSRF-Token': csrfToken
-            },
-            credentials: 'include'
+    function edit(cat) {
+        editingId = cat.id;
+        editValue = cat.name;
+    }
+
+    async function saveEdit(id) {
+        const res = await apiFetch(`http://localhost:4567/admin/categories/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ name: editValue })
         });
 
-        categories = categories.filter(c => c.id !== id);
+        const data = await res.json();
+
+        if (data.success) {
+                await loadCategories();
+                editingId = null;
+                editValue = '';
+            }
+    }
+
+    async function deleteCategory(id) {
+        const res = await apiFetch(`http://localhost:4567/admin/categories/${id}`, {
+            method: 'DELETE'
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            await loadCategories();
+        }
+        
     }
 </script>
 
@@ -55,6 +67,13 @@
 {#each categories as c}
     <div>
         {c.name}
-        <button on:click={() => deleteCategory(c.id)}>Delete</button>
+        {#if editingId === c.id}
+            <input bind:value={editValue} />
+            <button on:click={() => saveEdit(c.id)}>Save</button>
+        {:else}
+            {c.name}
+            <button on:click={() => edit(c)}>Edit</button>
+            <button on:click={() => deleteCategory(c.id)}>Delete</button>
+        {/if}
     </div>
 {/each}

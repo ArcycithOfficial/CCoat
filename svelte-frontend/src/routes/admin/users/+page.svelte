@@ -1,23 +1,24 @@
 <script>
     import { onMount } from 'svelte';
+    import { apiFetch } from '$lib/api';
 
     let users = [];
 
     onMount(async () => {
-        const res = await fetch('http://localhost:4567/admin/users', {
-            credentials: 'include'
-        });
-
+        const res = await apiFetch('http://localhost:4567/admin/users');
         users = await res.json();
     });
 
     async function deleteUser(id) {
-        await fetch(`http://localhost:4567/admin/users/${id}`, {
-            method: 'DELETE',
-            credentials: 'include'
+        const res = await apiFetch(`http://localhost:4567/admin/users/${id}`, {
+            method: 'DELETE'
         });
 
-        users = users.filter(u => u.id !== id);
+        const data = await res.json();
+
+        if (data.success) {
+            users = users.filter(u => u.id !== id);
+        }
     }
 </script>
 

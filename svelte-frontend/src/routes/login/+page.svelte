@@ -1,8 +1,19 @@
 <script>
     import { goto } from '$app/navigation';
+    import { csrf } from '$lib/stores';
+    let csrfToken = '';
     let email = '';
     let password = '';
     let message = '';
+
+    async function getCsrf() {
+            const res = await fetch('http://localhost:4567/api/csrf', {
+                credentials: 'include'
+            });
+
+            const data = await res.json();
+            return data.csrf;
+    }
 
     async function login() {
         console.log("LOGIN CLICKED"); 
@@ -16,8 +27,10 @@
         
         const data = await res.json();
 
-        
         if (data.success) {
+            const token = await getCsrf();
+            csrf.set(token);
+
             if (data.role === 'admin'){
                 goto('/admin');
             }else{
