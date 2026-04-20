@@ -6,7 +6,13 @@
 
     onMount(async () => {
         const res = await fetch('http://localhost:4567/api/categories', {
-            credentials: 'include'
+            method: 'POST',
+            headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken
+        },
+            credentials: 'include',
+            body: JSON.stringify({ name: newCategory})
         });
 
         categories = await res.json();
@@ -31,6 +37,9 @@
     async function deleteCategory(id) {
         await fetch(`http://localhost:4567/admin/categories/${id}`, {
             method: 'DELETE',
+            headers: {
+                'X-CSRF-Token': csrfToken
+            },
             credentials: 'include'
         });
 

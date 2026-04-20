@@ -6,38 +6,63 @@ require 'bcrypt'
 require "sinatra/json"
 require 'sinatra/cross_origin'
 require 'json'
+require 'securerandom'
 
 configure do
  enable :cross_origin
 end
 
-set :sessions, #fixa att den sparar sessions så att den kan kommunicera med svelte och tillbaka
+def csrfToken
+  session[:csrf] ||= SecureRandom.hex(32)
+end
+
+
+#rekommenderad för bättre security
+def require_admin!
+  halt 403, { "Content-Type" => "application/json" }, { error: "ONLY TOP TIER ACCESS" }.to_json
+end
+
+#fixa att den sparar sessions så att den kan kommunicera med svelte och tillbaka
+set :sessions, {
   key: 'session',
   httponly: true,
   same_site: :lax, #viktigt för kommunikationen
-  secure: false   #för lokalt
+  # secure: true   #för lokalt
+}
+
+#skippa get och options security eftersom det kan orsaka onödig request strul
 
 # Handle preflight OPTIONS requests automatically AI GENERERAT FÖR ATT HJÄLPA ATT SINATRA ALLTID TAR EMOT REQUESTS FRÅN SVELTE
 options "*" do
   response.headers['Access-Control-Allow-Origin'] = 'http://localhost:5173'
   response.headers['Access-Control-Allow-Credentials'] = 'true'
   response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-  response.headers["Access-Control-Allow-Headers"] = "Content-Type"
-  200
+  response.headers["Access-Control-Allow-Headers"] = 'Content-Type, X-CSRF-Token'
+  halt 200
 end
+
 before do
   response.headers['Access-Control-Allow-Origin'] = 'http://localhost:5173'
   response.headers['Access-Control-Allow-Credentials'] = 'true'
-  response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+  response.headers["Access-Control-Allow-Headers"] = 'Content-Type, X-CSRF-Token'
 end
+
+before "/admin/*" do
+  pass if request.request_method == "OPTIONS"
+
+
+
+  token = request.env["HTTP_X_CSRF_TOKEN"]
+  halt 403, "CSRF token missing or invalid" unless token  && token == session[:csrf]
+
+    require_admin!
+end
+
+
 
 #ersätts av set :sessions enable :sessions
 set :session_secret, "3UIUWFIWEIGGUIg#giug#uigIFGIWEFIUFUWEGFWJKNFJWJKEHKFUFHWHFKHEUIHSSFF"
 
-#rekommenderad för bättre security
-def require_admin!
-  halt 403, "ONLY TOP TIER ACCESS" unless session[:role] == 'admin'
-end
 
 #Easier to connect databases
 def db_connection
@@ -51,15 +76,22 @@ get("/api/data") do
  json({message: "Hello from Sinatra", timestamp: Time.now})
 end
 
+#DEFINE CRSF
+get ("/api/csrf") do
+  json csrf: csrfToken
+end
+
+get "/api/debug-session" do
+  json session
+end
+
 #ADMIN
 get("/admin/users") do
-  require_admin!
   db = db_connection
   json db.execute("SELECT id, username, email, role FROM users")
 end
 #categories
 post("/admin/categories") do
-  require_admin!
   db = db_connection
   data = JSON.parse(request.body.read)
 
@@ -75,6 +107,9 @@ end
 
 #TESTING DATABASE
 #USERS
+get("/api/debug-session") do
+  json session
+end
 #checker om logged in och skickas som data till Svelte som läser av logged_in true or false
 get("/api/user") do
   if session[:user_id]
@@ -84,7 +119,8 @@ get("/api/user") do
   end
 end
 
-#SIGN-IN
+#LOGGING FEATURES
+#SIGN-UP
 post("/api/signup") do
   db = db_connection
   data = JSON.parse(request.body.read)
@@ -107,18 +143,28 @@ post("/api/login") do
   user = db.execute("SELECT * FROM users WHERE email=?", email).first
 
   if user && BCrypt::Password.new(user['pwd_digest']) == password
+    session.clear
     session[:user_id] = user['id']
     session[:role] = user['role']
+    session[:csrf] = SecureRandom.hex(32)
     json({success: true, message: "Login successful", role: user['role']})
-
-
   else
-
     json({success: false, message: "Invalid email or password"})
   end
-
-
 end
+
+#LOGOUT
+post ("/api/logout") do
+  session.clear
+  json success: true
+end
+#CATEGORIES
+get("/api/categories") do
+  db = db_connection
+  categories = db.execute("SELECT * FROM categories")
+  json categories
+end
+
 
 #CREATORS
 get("/api/creators") do
