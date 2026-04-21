@@ -65,7 +65,7 @@ def create_tables(db)
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               name TEXT NOT NULL,
               description TEXT
-              )') 
+              )')       
 
   #Social_medias
   db.execute('CREATE TABLE social_medias (
