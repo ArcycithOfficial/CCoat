@@ -57,12 +57,14 @@ def create_tables(db)
               profile_image TEXT,
               banner_image TEXT,
               created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+              updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
               theme_color TEXT
               )')    
   #categories
   db.execute('CREATE TABLE categories (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
-              name TEXT NOT NULL
+              name TEXT NOT NULL,
+              description TEXT
               )') 
 
   #Social_medias

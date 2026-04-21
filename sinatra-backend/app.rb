@@ -107,7 +107,7 @@ put("/admin/categories/:id") do
   data = JSON.parse(request.body.read)
   id = params[:id].to_i
 
-  db.execute("UPDATE categories SET name = ? WHERE id = ?", data["name"], id)
+  db.execute("UPDATE categories SET name = ? WHERE id = ?",[data["name"], id])
 
   json({ success: true, id: id, name: data["name"] })
 end
@@ -117,6 +117,60 @@ delete("/admin/categories/:id") do
   db.execute("DELETE FROM categories WHERE id = ?", params[:id].to_i)
   json([success: true])
 end
+
+#creators
+post("/admin/creators") do
+  db = db_connection
+  data = JSON.parse(request.body.read)
+
+  db.execute("INSERT INTO creators(name, username, real_name, nationality, age, about_me, profile_image, banner_image, theme_color, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", 
+    [data["name"],      
+    data["username"],
+    data["real_name"],
+    data["nationality"],
+    data["age"],
+    data["about_me"],
+    data["profile_image"],
+    data["banner_image"],
+    data["theme_color"],
+    Time.now.to_s
+    ]
+    )
+
+  id = db.execute("SELECT last_insert_rowid() AS id").first["id"]
+
+  json({ success: true, creator: data.merge({ "id" => id }) })
+end
+
+put("/admin/creators/:id") do
+  db = db_connection
+  data = JSON.parse(request.body.read)
+  id = params[:id].to_i
+
+  db.execute("UPDATE creators SET name = ?, username = ?, real_name = ?, nationality = ?,
+      age = ?, about_me = ?, profile_image = ?, banner_image = ?, theme_color = ?, updated_at = ? WHERE id = ?",
+      [data["name"], 
+      data["username"],
+      data["real_name"],
+      data["nationality"],
+      data["age"],
+      data["about_me"],
+      data["profile_image"],
+      data["banner_image"],
+      data["theme_color"],
+      Time.now.to_s,
+      id]
+      )
+
+  json({ success: true, creator: data.merge({ "id" => id }) })
+end
+
+delete("/admin/creators/:id") do
+  db = db_connection
+  db.execute("DELETE FROM creators WHERE id = ?", params[:id].to_i)
+  json([success: true])
+end
+
 
 #TESTING DATABASE
 #USERS

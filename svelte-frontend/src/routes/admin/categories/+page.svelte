@@ -5,6 +5,9 @@
     let categories = [];
     let newCategory = '';
 
+    let editingId = null;
+    let editValue = '';
+
     async function loadCategories() {
         const res = await apiFetch('http://localhost:4567/api/categories');
         categories = await res.json();
@@ -66,7 +69,6 @@
 
 {#each categories as c}
     <div>
-        {c.name}
         {#if editingId === c.id}
             <input bind:value={editValue} />
             <button on:click={() => saveEdit(c.id)}>Save</button>

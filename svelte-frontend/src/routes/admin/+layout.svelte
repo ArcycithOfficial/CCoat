@@ -27,9 +27,11 @@
         <h3>Admin</h3>
 
         <nav>
-            <p on:click={() => goto('/admin')} style="cursor:pointer;">Dashboard</p>
-            <p on:click={() => goto('/admin/users')} style="cursor:pointer;">Users</p>
-            <p on:click={() => goto('/admin/categories')} style="cursor:pointer;">Categories</p>
+            <a href="/admin/dashboard">Dashboard</a>
+            <a href="/admin/users">Users</a>
+            <a href="/admin/categories">Categories</a>
+            <a href="/admin/creators">Creators</a>
+            <a href="/admin/products">Products</a>
         </nav>
     </aside>
 
