@@ -237,6 +237,12 @@ end
 get("/api/creators") do
   db = db_connection
   creators = db.execute("SELECT * FROM creators")
+
+  creators.each do |creator|
+    categories = db.execute("SELECT category_id FROM creator_categories WHERE creator_id = ?", [creator["id"]])
+    creator["category_ids"] = categories.map { |c| c["category_id"] }
+  end
+
   json creators
 end
 
@@ -248,6 +254,9 @@ get("/api/creators/:id") do
   socials = db.execute("SELECT * FROM social_medias WHERE creator_id = ?", id)
   merch = db.execute("SELECT * FROM products WHERE creator_id = ?", id)
 
+  categories = db.execute("SELECT categories.name, categories.id FROM categories 
+                           JOIN creator_categories ON categories.id = creator_categories.category_id 
+                           WHERE creator_categories.creator_id = ?", id)
 
   json({ creator: creator,socials: socials, merch: merch  })
 end
