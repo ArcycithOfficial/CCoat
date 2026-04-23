@@ -1,14 +1,8 @@
 
 <script>
-import { onMount } from 'svelte';
-  let creators = [];
-
-  onMount(async () => {
-    const res = await fetch('http://localhost:4567/api/creators');
-    creators = await res.json();
-  });
+  export let creator;
 </script>
-  {#each creators as creator}
+
      <a href="/creators/{creator.id}" class="creator-card">
         <div class="border rounded-md">
         <img class="object-cover border w-full" src="{creator.profile_image}" alt="{creator.name}" />
@@ -19,7 +13,5 @@ import { onMount } from 'svelte';
         </div>
         </div>
      </a>
-
    
 
-  {/each}

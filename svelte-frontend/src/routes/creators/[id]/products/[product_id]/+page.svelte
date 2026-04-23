@@ -6,7 +6,7 @@
   let options = [];
   let reviews = [];
 
-  let newReview = { user_id: 1, rating: 5, comment: '' };
+  let newReview = {user_id: 1, rating: 5, comment: ''};
 
   $: creatorId = $page.params.id;
   $: productId = $page.params.product_id;
@@ -59,6 +59,17 @@
 </ul>
 
 <h3>Add a Review</h3>
-<input type="number" bind:value={newReview.rating} min="1" max="5" placeholder="Rating (1-5)" />
-<textarea bind:value={newReview.comment} placeholder="Write a review"></textarea>
-<button on:click={addReview}>Submit Review</button>
+<form on:submit|preventDefault={addReview}>
+  <input
+    type="number"
+    bind:value={newReview.rating}
+    min="1" max="5"
+    placeholder="Rating (1-5)" />
+
+  <textarea
+    bind:value={newReview.comment}
+    placeholder="Write a review"></textarea>
+
+  <button type="submit">Submit Review</button>
+</form>
+

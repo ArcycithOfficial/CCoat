@@ -5,7 +5,9 @@
   let creator = null;
   let socials = [];
   let products = [];
+  let categories = [];
   let loading = true;
+
 
   $: creatorId = $page.params.id;
 
@@ -18,6 +20,7 @@
     creator = data.creator;
     socials = data.socials;
     products = data.merch;
+    categories = data.categories;
 
     loading = false;
   }
@@ -39,6 +42,14 @@
     <p><strong>Real name:</strong> {creator.real_name}</p>
     <p><strong>Nationality:</strong> {creator.nationality}</p>
     <p><strong>Age:</strong> {creator.age}</p>
+    <p><strong>Categories:</strong> 
+      {#if categories.length === 0}
+        None
+      {:else}
+        #{categories.map(c => c.name).join(', ')}
+      {/if}
+    </p>
+
 
     {#if creator.updated_at}
       <p style="opacity:0.6; font-size:0.9rem;">
@@ -76,7 +87,7 @@
       <ul>
         {#each products as product}
           <li>
-            <a href={`/creators/${creatorId}/products/${product.id}`}>
+            <a class="outline rounded" href={`/creators/${creatorId}/products/${product.id}`}>
               {product.name}
             </a>
           </li>

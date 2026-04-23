@@ -165,6 +165,26 @@ put("/admin/creators/:id") do
   json({ success: true, creator: data.merge({ "id" => id }) })
 end
 
+#categories
+post("/admin/creators/:id/categories") do
+  db = db_connection
+  data = JSON.parse(request.body.read)
+  creator_id = params[:id].to_i
+  category_id = data["category_id"].to_i
+
+  db.execute("INSERT INTO creator_categories(creator_id, category_id) VALUES (?, ?)", [creator_id, category_id])
+  json({ success: true })
+end
+
+delete("/admin/creators/:id/categories/:category_id") do
+  db = db_connection
+  creator_id = params[:id].to_i
+  category_id = params[:category_id].to_i
+
+  db.execute("DELETE FROM creator_categories WHERE creator_id = ? AND category_id = ?", [creator_id, category_id])
+  json({ success: true })
+end
+
 delete("/admin/creators/:id") do
   db = db_connection
   db.execute("DELETE FROM creators WHERE id = ?", params[:id].to_i)
@@ -197,7 +217,7 @@ post("/api/signup") do
 
   password = BCrypt::Password.create(password)
 
-  db.execute("INSERT INTO users(username, email, pwd_digest, role) VALUES (?, ?, ? ,?)", username, email, password, "user")
+  db.execute("INSERT INTO users(username, email, pwd_digest, role) VALUES (?, ?, ? ,?)", [username, email, password, "user"])
 end
 
 #LOGIN
@@ -233,15 +253,18 @@ get("/api/categories") do
 end
 
 
-#CREATORS
+#CREATORS #json_group_array istället för concat fixar om creators har flera categories och sätter ihop dem i en array för att inte behöva göra det manuellt #DISTINCT se till att den inte fetchar duplicates
 get("/api/creators") do
   db = db_connection
-  creators = db.execute("SELECT * FROM creators")
-
-  creators.each do |creator|
-    categories = db.execute("SELECT category_id FROM creator_categories WHERE creator_id = ?", [creator["id"]])
-    creator["category_ids"] = categories.map { |c| c["category_id"] }
-  end
+  creators = db.execute("SELECT 
+                        creators.*, json_group_array(DISTINCT creator_categories.category_id) AS category_ids,
+                        GROUP_CONCAT(DISTINCT categories.name) AS category_names
+                        FROM creators
+                        LEFT JOIN creator_categories 
+                          ON creators.id = creator_categories.creator_id
+                        LEFT JOIN categories
+                          ON categories.id = creator_categories.category_id
+                        GROUP BY creators.id")
 
   json creators
 end
@@ -258,7 +281,7 @@ get("/api/creators/:id") do
                            JOIN creator_categories ON categories.id = creator_categories.category_id 
                            WHERE creator_categories.creator_id = ?", id)
 
-  json({ creator: creator,socials: socials, merch: merch  })
+  json({ creator: creator,socials: socials, merch: merch, categories: categories  })
 end
 
 #PRODUCTS
@@ -295,7 +318,7 @@ end
 get("/api/creators/:creator_id/products/:product_id/reviews") do
   db = db_connection
   product_id = params[:product_id].to_i
-  reviews = db.execute("SELECT * FROM reviews WHERE product_id = ?", product_id)
+  reviews = db.execute("SELECT * FROM reviews WHERE product_id = ?",[product_id])
   json reviews
 end
 
@@ -303,24 +326,29 @@ post("/api/creators/:creator_id/products/:product_id/reviews") do
   db = db_connection
   product_id = params[:product_id].to_i
 
-  #Parse JSON sent from user from Svelte
-  request_payload = JSON.parse(request.body.read)
-  user_id = request_payload["user_id"].to_i
-  rating = request_payload["rating"].to_i
-  comment = request_payload["comment"]
+  data = JSON.parse(request.body.read)
+
+
+  user_id = data["user_id"].to_i
+  rating = data["rating"].to_i
+  comment = data["comment"]
 
   db.execute("INSERT INTO reviews (user_id, product_id, rating, comment, created_at) VALUES(?, ?, ?, ?, ?)",
-  user_id, product_id, rating, comment, Time.now.to_s)
+  [user_id, product_id, rating, comment, Time.now.to_s])
+
+  id = db.execute("SELECT last_insert_rowid() AS id").first["id"]
 
   new_review = db.execute("SELECT * FROM  reviews WHERE rowid = last_insert_rowid()").first
-  json new_review
+
+  json({ success: true, review: new_review })
 end
 
 #edit
 get("/api/creators/:creator_id/products/:product_id/reviews/:id") do
   db = db_connection
   id = params[:id].to_i
-  review = db.execute("SELECT * FROM reviews WHERE id = ? AND product_id = ?", id).first
+  product_id = params[:product_id].to_i
+  review = db.execute("SELECT * FROM reviews WHERE id = ? AND product_id = ?", [id, product_id]).first
   json review
 end
 
@@ -334,8 +362,8 @@ put("/api/creators/:creator_id/products/:product_id/reviews/:id") do
   rating = request_payload["rating"].to_i
   comment = request_payload["comment"]
 
-  db.execute("UPDATE reviews SET rating = ?, comment = ? WHERE id = ? AND product_id = ?", rating, comment, review_id, product_id)
-  updated_review = db.execute("SELECT * FROM reviews WHERE id = ? AND product_id = ?", review_id, product_id).first
+  db.execute("UPDATE reviews SET rating = ?, comment = ? WHERE id = ? AND product_id = ?", [rating, comment, review_id, product_id])
+  updated_review = db.execute("SELECT * FROM reviews WHERE id = ? AND product_id = ?", [review_id, product_id]).first
 
   json updated_review
 end
@@ -344,8 +372,9 @@ end
 delete("/api/creators/:creator_id/products/:product_id/reviews/:id") do
   db = db_connection
   review_id = params[:id].to_i
-  db.execute("DELETE FROM reviews WHERE id = ? AND product_id = ?", review_id)
-  json review_id
+  product_id = params[:product_id].to_i
+  db.execute("DELETE FROM reviews WHERE id = ? AND product_id = ?", [review_id, product_id])
+  json({ success: true })
 end
 
 
