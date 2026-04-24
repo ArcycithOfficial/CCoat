@@ -7,6 +7,8 @@ require "sinatra/json"
 require 'sinatra/cross_origin'
 require 'json'
 require 'securerandom'
+#hämta alla models
+Dir[File.join(__dir__, 'models', '*.rb')].each { |f| require_relative f }
 
 configure do
  enable :cross_origin
@@ -14,7 +16,6 @@ end
 
 #tar bort protection, behövs åtgärdas senare
 set :protection, except: :http_origin
-
 
 def csrf_token
   session[:csrf] ||= SecureRandom.hex(32)
@@ -60,11 +61,8 @@ before "/admin/*" do
   halt 403, { "Content-Type" => "application/json" }, { error: "CSRF token missing or invalid" }.to_json unless token  && token == session[:csrf]
 end
 
-
-
 #ersätts av set :sessions enable :sessions
 set :session_secret, "3UIUWFIWEIGGUIg#giug#uigIFGIWEFIUFUWEGFWJKNFJWJKEHKFUFHWHFKHEUIHSSFF"
-
 
 #Easier to connect databases
 def db_connection
