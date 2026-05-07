@@ -20,23 +20,24 @@
     });
 </script>
 
-<div style="display:flex; min-height:100vh;">
+<div>
     
     <!-- SIDEBAR -->
-    <aside style="width:200px; padding:20px; background:#111; color:white;">
-        <h3>Admin</h3>
+    <aside class="bg-black text-white p-4 flex justify-center flex-col">
+        <h3 class="text-center font-bold">Admin</h3>
 
-        <nav>
-            <a href="/admin/dashboard">Dashboard</a>
-            <a href="/admin/users">Users</a>
-            <a href="/admin/categories">Categories</a>
-            <a href="/admin/creators">Creators</a>
-            <a href="/admin/products">Products</a>
-        </nav>
+        <div class="m-2 flex flex-wrap justify-center">
+            <a href="/admin/dashboard" class="outline rounded p-1 m-1">Dashboard</a>
+            <a href="/admin/users" class="outline rounded p-1 m-1">Users</a>
+            <a href="/admin/categories" class="outline rounded p-1 m-1">Categories</a>
+            <a href="/admin/creators" class="outline rounded p-1 m-1">Creators</a>
+            <a href="/admin/products" class="outline rounded p-1 m-1">Products</a>
+            <a href="/admin/options" class="outline rounded p-1 m-1">Merch Values</a>
+        </div>
     </aside>
 
     <!-- MAIN CONTENT -->
-    <main style="flex:1; padding:20px;">
+    <main class="bg-black">
         <slot />
     </main>
 

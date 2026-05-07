@@ -62,20 +62,27 @@
     }
 </script>
 
-<h1>Categories</h1>
 
-<input bind:value={newCategory} placeholder="New category">
-<button on:click={addCategory}>Add</button>
+<section class="text-white align-middle flex justify-center">
+<div class="bg-purple-950 w-100">
+<h1 class="text-center font-bold">Categories</h1>
+
+<div class="justify-center flex flex-col">
+<input bind:value={newCategory} placeholder="New category" class="w-[80%] m-auto">
+<button on:click={addCategory} class="bg-green-700 outline-2 outline-black w-fit mx-auto my-2 px-3">Add</button>
+</div>
 
 {#each categories as c}
-    <div>
+    <div class="m-2">
         {#if editingId === c.id}
             <input bind:value={editValue} />
             <button on:click={() => saveEdit(c.id)}>Save</button>
         {:else}
             {c.name}
-            <button on:click={() => edit(c)}>Edit</button>
-            <button on:click={() => deleteCategory(c.id)}>Delete</button>
+            <button on:click={() => edit(c)} class="bg-yellow-500 px-2">Edit</button>
+            <button on:click={() => deleteCategory(c.id)} class="bg-red-600 px-2">Delete</button>
         {/if}
     </div>
 {/each}
+</div>
+</section>

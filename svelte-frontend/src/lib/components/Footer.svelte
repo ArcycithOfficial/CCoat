@@ -1,2 +1,2 @@
-<div class="h-100 bg-sky-200">
+<div class="h-100 bg-purple-900">
 </div>

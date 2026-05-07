@@ -22,11 +22,13 @@ def drop_tables(db)
   db.execute('DROP TABLE IF EXISTS merch')
   db.execute('DROP TABLE IF EXISTS social_medias')
   db.execute('DROP TABLE IF EXISTS users')
+  db.execute('DROP TABLE IF EXISTS login_attempts')
   db.execute('DROP TABLE IF EXISTS categories')
   db.execute('DROP TABLE IF EXISTS products')
   db.execute('DROP TABLE IF EXISTS option_types')
   db.execute('DROP TABLE IF EXISTS option_values')
   db.execute('DROP TABLE IF EXISTS product_option_types')
+  db.execute('DROP TABLE IF EXISTS product_option_values')
   db.execute('DROP TABLE IF EXISTS orders')
   db.execute('DROP TABLE IF EXISTS order_items')
   db.execute('DROP TABLE IF EXISTS reviews')
@@ -45,6 +47,14 @@ def create_tables(db)
               created_at TEXT DEFAULT CURRENT_TIMESTAMP,
               profile_picture TEXT
               )')
+  #login filter
+  db.execute('CREATE TABLE login_attempts (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              email TEXT,
+              ip TEXT,
+              success BOOLEAN,
+              created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )')
   #creators
   db.execute('CREATE TABLE creators (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -74,14 +84,17 @@ def create_tables(db)
               platform TEXT NOT NULL,
               username TEXT NOT NULL,
               followers INTEGER,
-              views INTEGER
+              views INTEGER,
+              FOREIGN KEY (creator_id) REFERENCES creators(id) ON DELETE CASCADE
               )')     
 
   #Creator_Categories (many to many)
   db.execute('CREATE TABLE creator_categories(
               creator_id INTEGER,
               category_id INTEGER,
-              PRIMARY KEY (creator_id, category_id)
+              PRIMARY KEY (creator_id, category_id),
+              FOREIGN KEY (creator_id) REFERENCES creators(id) ON DELETE CASCADE,
+              FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
               )')   
   #PRODUCT RELATED
   #products
@@ -92,7 +105,8 @@ def create_tables(db)
               description TEXT NOT NULL,
               base_price INTEGER NOT NULL,
               image TEXT,
-              created_at TEXT DEFAULT CURRENT_TIMESTAMP
+              created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+              FOREIGN KEY (creator_id) REFERENCES creators(id) ON DELETE CASCADE
               )')  
   #product_options (Size, Color, Addon)
   db.execute('CREATE TABLE option_types (
@@ -112,6 +126,14 @@ def create_tables(db)
               option_type_id INTEGER,
               PRIMARY KEY (product_id, option_type_id)
               )') 
+  #product_option_values which specific values available for a product
+  db.execute('CREATE TABLE product_option_values (
+              product_id INTEGER,
+              option_value_id INTEGER,
+              PRIMARY KEY (product_id, option_value_id),
+              FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+              FOREIGN KEY (option_value_id) REFERENCES option_values(id) ON DELETE CASCADE
+              )')
 
   #ORDERS
   db.execute("CREATE TABLE orders (
@@ -128,7 +150,8 @@ def create_tables(db)
               order_id INTEGER,
               product_id INTEGER,
               quantity INTEGER,
-              price_at_purchase INTEGER
+              price_at_purchase INTEGER,
+              FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
             )')
 
   #Reviews
@@ -139,7 +162,8 @@ def create_tables(db)
               rating INTEGER,
               comment TEXT,
               created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-              updated_at TEXT
+              updated_at TEXT,
+              FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
             )')
 
   db.execute('CREATE TABLE reviews_likes (
@@ -171,6 +195,8 @@ def populate_tables(db)
   #USERS
   db.execute("INSERT INTO users (username, email, pwd_digest, role) VALUES (?,?,?,?)", ["Arcycith", "arcycith@gmail.com", admin_password, "admin"])
   db.execute("INSERT INTO users (username, email, pwd_digest, role) VALUES (?,?,?,?)", ["Victor", "victor@gmail.com", user_password, "user"])
+
+
 
   #CATEGORIES
   db.execute('INSERT INTO categories (name) VALUES ("Gaming")')

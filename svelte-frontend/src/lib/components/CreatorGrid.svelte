@@ -40,10 +40,11 @@
 </script>
 
 <div class="grid p-8">
-    <div class="flex flex-wrap gap-4 mb-8 items-center bg-gray-100 p-4 rounded-lg">
-        <input type="text" placeholder="Sök namn..." bind:value={searchTerm} class="border p-2 rounded shadow-sm"/>
-
-        <select bind:value={selectedCategoryId} class="border p-2 rounded shadow-sm">
+    <h1 class="text-center font-bold text-4xl m-10">OUR CREATORS</h1>
+    <div class="flex flex-col gap-4 mb-8 items-center bg-gray-100 p-4 rounded-lg">
+        <input type="text" placeholder="Sök namn..." bind:value={searchTerm} class="border p-2 w-100 rounded shadow-sm"/>
+        <div class="flex gap-2">
+        <select bind:value={selectedCategoryId} class="border px-8 rounded shadow-sm">
             <option value="All">Alla kategorier</option>
             {#each categories as cat}
                 <option value={cat.id}>{cat.name}</option>
@@ -56,9 +57,13 @@
             <span>till</span>
             <input type="number" bind:value={maxAge} class="w-16 p-1 border-b" min="0" />
         </div>
+        </div>
     </div>
 
-    <div class="grid grid-cols-2 gap-4">
+    <section>
+
+
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-4 p-10 bg-purple-950 rounded h-[1000px]">
         {#each filteredCreators as creator}
             <CreatorCard {creator} />
         {/each}
@@ -67,4 +72,5 @@
             <p>No creators match</p>
         {/if}
     </div>
+    </section>
 </div>

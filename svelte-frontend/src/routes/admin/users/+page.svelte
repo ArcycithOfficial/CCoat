@@ -22,11 +22,17 @@
     }
 </script>
 
-<h1>Admin - Users</h1>
 
+<section class="text-white flex justify-center">
+<div class="bg-purple-950 rounded p-4">
+<h1 class="font-bold text-center">Admin - Users</h1>
+<div class="flex flex-col gap-2">
 {#each users as user}
-    <div>
+    <div class="flex gap-2 justify-between">
         {user.username} ({user.role})
-        <button on:click={() => deleteUser(user.id)}>Delete</button>
+        <button on:click={() => deleteUser(user.id)} class="bg-red-600 px-2 rounded outline-1 outline-black text-sm">Delete</button>
     </div>
 {/each}
+</div>
+</div>
+</section>

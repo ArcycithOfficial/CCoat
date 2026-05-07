@@ -7,37 +7,33 @@ require "sinatra/json"
 require 'sinatra/cross_origin'
 require 'json'
 require 'securerandom'
-#hämta alla models
+
 Dir[File.join(__dir__, 'models', '*.rb')].each { |f| require_relative f }
 
 configure do
- enable :cross_origin
+  enable :cross_origin
 end
 
-#tar bort protection, behövs åtgärdas senare
 set :protection, except: :http_origin
 
 def csrf_token
   session[:csrf] ||= SecureRandom.hex(32)
 end
 
-
-#rekommenderad för bättre security
 def require_admin!
   halt 403, { error: "ONLY TOP TIER ACCESS" }.to_json unless session[:role] == 'admin'
 end
 
-#fixa att den sparar sessions så att den kan kommunicera med svelte och tillbaka
+def require_login!
+  halt 401, { error: "Must be logged in" }.to_json unless session[:user_id]
+end
+
 set :sessions, {
   key: 'session',
   httponly: true,
-  same_site: :lax, #viktigt för kommunikationen
-  # secure: true   #för lokalt
+  same_site: :lax,
 }
 
-#skippa get och options security eftersom det kan orsaka onödig request strul
-
-# Handle preflight OPTIONS requests automatically AI GENERERAT FÖR ATT HJÄLPA ATT SINATRA ALLTID TAR EMOT REQUESTS FRÅN SVELTE
 options "*" do
   response.headers['Access-Control-Allow-Origin'] = 'http://localhost:5173'
   response.headers['Access-Control-Allow-Credentials'] = 'true'
@@ -54,346 +50,276 @@ end
 
 before "/admin/*" do
   pass if request.request_method == "OPTIONS"
-
   require_admin!
-
   token = request.env["HTTP_X_CSRF_TOKEN"]
-  halt 403, { "Content-Type" => "application/json" }, { error: "CSRF token missing or invalid" }.to_json unless token  && token == session[:csrf]
+  halt 403, { error: "CSRF token missing or invalid" }.to_json unless token && token == session[:csrf]
 end
 
-#ersätts av set :sessions enable :sessions
 set :session_secret, "3UIUWFIWEIGGUIg#giug#uigIFGIWEFIUFUWEGFWJKNFJWJKEHKFUFHWHFKHEUIHSSFF"
 
-#Easier to connect databases
 def db_connection
   db = SQLite3::Database.new('db/database.db')
   db.results_as_hash = true
+  db.execute("PRAGMA foreign_keys = ON")
   db
 end
 
-# API-endpoint
-get("/api/data") do
- json({message: "Hello from Sinatra", timestamp: Time.now})
-end
-
-#DEFINE CRSF
-get ("/api/csrf") do
+# CSRF
+get("/api/csrf") do
   json csrf: csrf_token
 end
 
-
-#ADMIN
-get("/admin/users") do
-  db = db_connection
-  json db.execute("SELECT id, username, email, role FROM users")
-end
-#categories
-post("/admin/categories") do
-  db = db_connection
-  data = JSON.parse(request.body.read)
-
-  db.execute("INSERT INTO categories(name) VALUES (?)", data["name"])
-
-  id = db.execute("SELECT last_insert_rowid() AS id").first["id"]
-
-  json({ success: true, id: id, name: data["name"] })
-  puts session.inspect
-end
-
-put("/admin/categories/:id") do
-  db = db_connection
-  data = JSON.parse(request.body.read)
-  id = params[:id].to_i
-
-  db.execute("UPDATE categories SET name = ? WHERE id = ?",[data["name"], id])
-
-  json({ success: true, id: id, name: data["name"] })
-end
-
-delete("/admin/categories/:id") do
-  db = db_connection
-  db.execute("DELETE FROM categories WHERE id = ?", params[:id].to_i)
-  json([success: true])
-end
-
-#creators
-post("/admin/creators") do
-  db = db_connection
-  data = JSON.parse(request.body.read)
-
-  db.execute("INSERT INTO creators(name, username, real_name, nationality, age, about_me, profile_image, banner_image, theme_color, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", 
-    [data["name"],      
-    data["username"],
-    data["real_name"],
-    data["nationality"],
-    data["age"],
-    data["about_me"],
-    data["profile_image"],
-    data["banner_image"],
-    data["theme_color"],
-    Time.now.to_s
-    ]
-    )
-
-  id = db.execute("SELECT last_insert_rowid() AS id").first["id"]
-
-  json({ success: true, creator: data.merge({ "id" => id }) })
-end
-
-put("/admin/creators/:id") do
-  db = db_connection
-  data = JSON.parse(request.body.read)
-  id = params[:id].to_i
-
-  db.execute("UPDATE creators SET name = ?, username = ?, real_name = ?, nationality = ?,
-      age = ?, about_me = ?, profile_image = ?, banner_image = ?, theme_color = ?, updated_at = ? WHERE id = ?",
-      [data["name"], 
-      data["username"],
-      data["real_name"],
-      data["nationality"],
-      data["age"],
-      data["about_me"],
-      data["profile_image"],
-      data["banner_image"],
-      data["theme_color"],
-      Time.now.to_s,
-      id]
-      )
-
-  json({ success: true, creator: data.merge({ "id" => id }) })
-end
-
-#categories
-post("/admin/creators/:id/categories") do
-  db = db_connection
-  data = JSON.parse(request.body.read)
-  creator_id = params[:id].to_i
-  category_id = data["category_id"].to_i
-
-  db.execute("INSERT INTO creator_categories(creator_id, category_id) VALUES (?, ?)", [creator_id, category_id])
-  json({ success: true })
-end
-
-delete("/admin/creators/:id/categories/:category_id") do
-  db = db_connection
-  creator_id = params[:id].to_i
-  category_id = params[:category_id].to_i
-
-  db.execute("DELETE FROM creator_categories WHERE creator_id = ? AND category_id = ?", [creator_id, category_id])
-  json({ success: true })
-end
-
-delete("/admin/creators/:id") do
-  db = db_connection
-  db.execute("DELETE FROM creators WHERE id = ?", params[:id].to_i)
-  json([success: true])
-end
-
-
-#TESTING DATABASE
-#USERS
-get("/api/debug-session") do
-  json session
-end
-#checker om logged in och skickas som data till Svelte som läser av logged_in true or false
+# USER
 get("/api/user") do
   if session[:user_id]
-    json({ logged_in: true, user_id: session[:user_id], role: session[:role]})
+    json({ logged_in: true, user_id: session[:user_id], role: session[:role] })
   else
-    json({logged_in: false})
+    json({ logged_in: false })
   end
 end
 
-#LOGGING FEATURES
-#SIGN-UP
+# AUTH
 post("/api/signup") do
   db = db_connection
   data = JSON.parse(request.body.read)
-  username = data["username"]
-  email = data["email"]
-  password = data["password"]
-
-  password = BCrypt::Password.create(password)
-
-  db.execute("INSERT INTO users(username, email, pwd_digest, role) VALUES (?, ?, ? ,?)", [username, email, password, "user"])
+  digest = BCrypt::Password.create(data["password"])
+  User.create(db, data["username"], data["email"], digest)
 end
 
-#LOGIN
 post("/api/login") do
-  #JSON parse logik information från AI
   db = db_connection
   data = JSON.parse(request.body.read)
   email = data["email"]
-  password = data["password"]
-  user = db.execute("SELECT * FROM users WHERE email=?", email).first
+  ip = request.ip
 
-  if user && BCrypt::Password.new(user['pwd_digest']) == password
+    # hjälp kod från AI för att kunna räkna och lägga timear för login attempts
+  recent_fails = db.execute("SELECT COUNT(*) as count FROM login_attempts 
+    WHERE ip = ? AND success = 0 AND created_at > datetime('now', '-2 minutes')",
+    ip).first["count"]
+
+  if recent_fails >= 5
+    db.execute("INSERT INTO login_attempts (email, ip, success) VALUES (?, ?, ?)", [email, ip, 0])
+    halt 429, json({ success: false, message: "Too many failed attempts. Try again in 2 minutes." })
+  end
+
+  user = User.find_by_email(db, email)
+
+
+  if user && BCrypt::Password.new(user['pwd_digest']) == data["password"]
     session.clear
     session[:user_id] = user['id']
     session[:role] = user['role']
     session[:csrf] = SecureRandom.hex(32)
-    json({success: true, message: "Login successful", role: user['role']})
+    json({ success: true, message: "Login successful", role: user['role'] })
   else
-    json({success: false, message: "Invalid email or password"})
+    db.execute("INSERT INTO login_attempts (email, ip, success) VALUES (?, ?, ?)", [email, ip, 0])
+    puts "[LOGIN] FAILED — #{email} from #{ip} at #{Time.now}"
+    json({ success: false, message: "Invalid email or password" })
   end
 end
 
-#LOGOUT
-post ("/api/logout") do
+post("/api/logout") do
   session.clear
   json success: true
 end
-#CATEGORIES
+
+# CATEGORIES
 get("/api/categories") do
-  db = db_connection
-  categories = db.execute("SELECT * FROM categories")
-  json categories
+  json Category.all(db_connection)
 end
 
+post("/admin/categories") do
+  data = JSON.parse(request.body.read)
+  id = Category.create(db_connection, data["name"])
+  json({ success: true, id: id, name: data["name"] })
+end
 
-#CREATORS #json_group_array istället för concat fixar om creators har flera categories och sätter ihop dem i en array för att inte behöva göra det manuellt #DISTINCT se till att den inte fetchar duplicates
-get("/api/creators") do
+put("/admin/categories/:id") do
+  data = JSON.parse(request.body.read)
+  Category.update(db_connection, params[:id].to_i, data["name"])
+  json({ success: true })
+end
+
+delete("/admin/categories/:id") do
+  Category.delete(db_connection, params[:id].to_i)
+  json({ success: true })
+end
+
+# PRODUCTS ADMIN
+get("/admin/products") do
+  json Product.all(db_connection)
+end
+
+post("/admin/creators/:creator_id/products") do
   db = db_connection
-  creators = db.execute("SELECT 
-                        creators.*, json_group_array(DISTINCT creator_categories.category_id) AS category_ids,
-                        GROUP_CONCAT(DISTINCT categories.name) AS category_names
-                        FROM creators
-                        LEFT JOIN creator_categories 
-                          ON creators.id = creator_categories.creator_id
-                        LEFT JOIN categories
-                          ON categories.id = creator_categories.category_id
-                        GROUP BY creators.id")
+  data = JSON.parse(request.body.read)
+  id = Product.create(db, params[:creator_id].to_i, data)
+  json({ success: true, id: id })
+end
 
-  json creators
+put("/admin/products/:id") do
+  db = db_connection
+  data = JSON.parse(request.body.read)
+  Product.update(db, params[:id].to_i, data)
+  json({ success: true })
+end
+
+delete("/admin/products/:id") do
+  Product.delete(db_connection, params[:id].to_i)
+  json({ success: true })
+end
+
+# PRODUCT OPTIONS
+post("/admin/products/:id/options") do
+  db = db_connection
+  data = JSON.parse(request.body.read)
+  Product.add_option(db, params[:id].to_i, data["option_type_id"].to_i)
+  json({ success: true })
+end
+
+delete("/admin/products/:id/options/:option_type_id") do
+  Product.remove_option(db_connection, params[:id].to_i, params[:option_type_id].to_i)
+  json({ success: true })
+end
+
+# CREATORS
+get("/api/creators") do
+  json Creator.all(db_connection)
 end
 
 get("/api/creators/:id") do
   db = db_connection
   id = params[:id].to_i
-
-  creator = db.execute("SELECT * FROM creators WHERE id = ?", id).first
-  socials = db.execute("SELECT * FROM social_medias WHERE creator_id = ?", id)
-  merch = db.execute("SELECT * FROM products WHERE creator_id = ?", id)
-
-  categories = db.execute("SELECT categories.name, categories.id FROM categories 
-                           JOIN creator_categories ON categories.id = creator_categories.category_id 
-                           WHERE creator_categories.creator_id = ?", id)
-
-  json({ creator: creator,socials: socials, merch: merch, categories: categories  })
+  creator = Creator.find(db, id)
+  socials = Social.for_creator(db, id)
+  merch = Product.for_creator(db, id)
+  categories = Creator.categories(db, id)
+  json({ creator: creator, socials: socials, merch: merch, categories: categories })
 end
 
-#PRODUCTS
-get("/api/creators/:creator_id/products") do
-  db = db_connection
-  creator_id = params[:creator_id].to_i
+post("/admin/creators") do
+  data = JSON.parse(request.body.read)
+  id = Creator.create(db_connection, data)
+  json({ success: true, creator: data.merge({ "id" => id }) })
+end
 
-  products = db.execute("SELECT * FROM products WHERE creator_id = ?", creator_id)
-  json products
+put("/admin/creators/:id") do
+  data = JSON.parse(request.body.read)
+  Creator.update(db_connection, params[:id].to_i, data)
+  json({ success: true, creator: data.merge({ "id" => params[:id].to_i }) })
+end
+
+delete("/admin/creators/:id") do
+  Creator.delete(db_connection, params[:id].to_i)
+  json({ success: true })
+end
+
+post("/admin/creators/:id/categories") do
+  data = JSON.parse(request.body.read)
+  Creator.add_category(db_connection, params[:id].to_i, data["category_id"].to_i)
+  json({ success: true })
+end
+
+delete("/admin/creators/:id/categories/:category_id") do
+  Creator.remove_category(db_connection, params[:id].to_i, params[:category_id].to_i)
+  json({ success: true })
+end
+
+# REVIEWS
+get("/api/creators/:creator_id/products/:product_id/reviews") do
+  json Review.for_product(db_connection, params[:product_id].to_i)
+end
+
+post("/api/creators/:creator_id/products/:product_id/reviews") do
+  require_login!
+  db = db_connection
+  data = JSON.parse(request.body.read)
+  id = Review.create(db, data["user_id"].to_i, params[:product_id].to_i, data["rating"].to_i, data["comment"])
+  review = Review.find(db, id)
+  json({ success: true, review: review })
+end
+
+put("/api/creators/:creator_id/products/:product_id/reviews/:id") do
+  require_login!
+  db = db_connection
+  data = JSON.parse(request.body.read)
+  review = Review.update(db, params[:id].to_i, params[:product_id].to_i, data["rating"].to_i, data["comment"])
+  json review
+end
+
+delete("/api/creators/:creator_id/products/:product_id/reviews/:id") do
+  require_login!
+  Review.delete(db_connection, params[:id].to_i, params[:product_id].to_i)
+  json({ success: true })
+end
+
+# ADMIN
+get("/admin/users") do
+  json User.all(db_connection)
+end
+
+# PRODUCTS
+get("/api/creators/:creator_id/products") do
+  json Product.for_creator(db_connection, params[:creator_id].to_i)
 end
 
 get("/api/creators/:creator_id/products/:id") do
   db = db_connection
-  id = params[:id].to_i
-  product = db.execute("SELECT * FROM products WHERE id = ?", id).first
-  options = db.execute("SELECT option_types.name AS option_type, option_values.value, option_values.price_modifier FROM product_option_types 
-  JOIN option_types ON product_option_types.option_type_id = option_types.id
-  JOIN option_values ON option_values.option_type_id = option_types.id
-  WHERE product_option_types.product_id = ?", id)
-
-  json({product: product, options: options })
+  product = Product.find(db, params[:id].to_i)
+  options = Product.options(db, params[:id].to_i)
+  json({ product: product, options: options })
 end
 
-#ORDERS
-get("/api/orders") do
-  db = db_connection
-  id = params[:id].to_i
-  orders = db.execute("SELECT * FROM orders")
-  json orders
+# OPTION TYPES
+get("/api/option_types") do
+  json OptionType.all(db_connection)
 end
 
-
-#REVIEWS
-get("/api/creators/:creator_id/products/:product_id/reviews") do
-  db = db_connection
-  product_id = params[:product_id].to_i
-  reviews = db.execute("SELECT * FROM reviews WHERE product_id = ?",[product_id])
-  json reviews
-end
-
-post("/api/creators/:creator_id/products/:product_id/reviews") do
-  db = db_connection
-  product_id = params[:product_id].to_i
-
+post("/admin/option_types") do
   data = JSON.parse(request.body.read)
-
-
-  user_id = data["user_id"].to_i
-  rating = data["rating"].to_i
-  comment = data["comment"]
-
-  db.execute("INSERT INTO reviews (user_id, product_id, rating, comment, created_at) VALUES(?, ?, ?, ?, ?)",
-  [user_id, product_id, rating, comment, Time.now.to_s])
-
-  id = db.execute("SELECT last_insert_rowid() AS id").first["id"]
-
-  new_review = db.execute("SELECT * FROM  reviews WHERE rowid = last_insert_rowid()").first
-
-  json({ success: true, review: new_review })
+  id = OptionType.create(db_connection, data["name"])
+  json({ success: true, id: id, name: data["name"] })
 end
 
-#edit
-get("/api/creators/:creator_id/products/:product_id/reviews/:id") do
-  db = db_connection
-  id = params[:id].to_i
-  product_id = params[:product_id].to_i
-  review = db.execute("SELECT * FROM reviews WHERE id = ? AND product_id = ?", [id, product_id]).first
-  json review
-end
-
-#update
-put("/api/creators/:creator_id/products/:product_id/reviews/:id") do
-  db = db_connection
-  product_id = params[:product_id].to_i
-  review_id = params[:id].to_i
-
-  request_payload = JSON.parse(request.body.read)
-  rating = request_payload["rating"].to_i
-  comment = request_payload["comment"]
-
-  db.execute("UPDATE reviews SET rating = ?, comment = ? WHERE id = ? AND product_id = ?", [rating, comment, review_id, product_id])
-  updated_review = db.execute("SELECT * FROM reviews WHERE id = ? AND product_id = ?", [review_id, product_id]).first
-
-  json updated_review
-end
-
-#delete
-delete("/api/creators/:creator_id/products/:product_id/reviews/:id") do
-  db = db_connection
-  review_id = params[:id].to_i
-  product_id = params[:product_id].to_i
-  db.execute("DELETE FROM reviews WHERE id = ? AND product_id = ?", [review_id, product_id])
+delete("/admin/option_types/:id") do
+  OptionType.delete(db_connection, params[:id].to_i)
   json({ success: true })
 end
 
-
-
-#VOTES
-get("/api/votes/:creator_id") do
-  db = db_connection
-  creator_id = params[:creator_id].to_i
-  votes = db.execute("SELECT * FROM votes WHERE creator_id = ?", creator_id)
-  json votes
+# OPTION VALUES
+get("/api/option_types/:id/values") do
+  json OptionValue.for_type(db_connection, params[:id].to_i)
 end
 
-
-
-#HOME
-get('/') do
-  db = db_connection
-  creators = db.execute("SELECT name FROM creators")
-  json creators
+post("/admin/option_types/:id/values") do
+  data = JSON.parse(request.body.read)
+  id = OptionValue.create(db_connection, params[:id].to_i, data["value"], data["price_modifier"].to_i)
+  json({ success: true, id: id })
 end
 
+put("/admin/option_values/:id") do
+  data = JSON.parse(request.body.read)
+  OptionValue.update(db_connection, params[:id].to_i, data["value"], data["price_modifier"].to_i)
+  json({ success: true })
+end
 
+delete("/admin/option_values/:id") do
+  OptionValue.delete(db_connection, params[:id].to_i)
+  json({ success: true })
+end
 
+# PRODUCT OPTION VALUES
+get("/api/products/:id/option_values") do
+  json Product.option_values(db_connection, params[:id].to_i)
+end
 
+post("/admin/products/:id/option_values") do
+  data = JSON.parse(request.body.read)
+  Product.add_option_value(db_connection, params[:id].to_i, data["option_value_id"].to_i)
+  json({ success: true })
+end
+
+delete("/admin/products/:id/option_values/:option_value_id") do
+  Product.remove_option_value(db_connection, params[:id].to_i, params[:option_value_id].to_i)
+  json({ success: true })
+end
